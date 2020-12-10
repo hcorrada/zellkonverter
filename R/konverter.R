@@ -285,8 +285,15 @@ SCE2AnnData <- function(sce, X_name = NULL, skip_assays = FALSE) {
         adata$layers <- assays_list
     }
 
-    red_dims <- as.list(reducedDims(sce))
-    red_dims <- lapply(red_dims, .makeNumpyFriendly)
+    # hack this for RangedSummarizedExperiment
+    if (hasMethod(reducedDims, class(sce))) {
+        red_dims <- as.list(reducedDims(sce))
+        red_dims <- lapply(red_dims, .makeNumpyFriendly)
+    } else {
+        red_dims <- List()
+        names(red_dims) <- character(0)
+        red_dims <- as.list(red_dims)
+    }
     adata$obsm <- red_dims
 
     meta_list <- metadata(sce)
@@ -306,9 +313,22 @@ SCE2AnnData <- function(sce, X_name = NULL, skip_assays = FALSE) {
 
     adata$uns$data <- uns_list
 
-    adata$varp <- as.list(rowPairs(sce, asSparse=TRUE))
-    adata$obsp <- as.list(colPairs(sce, asSparse=TRUE))
+    if (hasMethod(rowPairs, class(sce))) {
+        adata$varp <- as.list(rowPairs(sce, asSparse=TRUE))
+    } else {
+        ll <- List()
+        names(ll) <- character(0)
+        adata$varp <- as.list(ll)
+    }
 
+    if (hasMethod(colPairs, class(sce))) {
+        adata$obsp <- as.list(colPairs(sce, asSparse=TRUE))
+    } else {
+        ll <- List()
+        names(ll) <- character(0)
+        adata$obsp <- as.list(ll)
+    }
+    
     if (!is.null(colnames(sce))) {
         adata$obs_names <- colnames(sce)
     }
